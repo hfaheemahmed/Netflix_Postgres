@@ -1,1 +1,1 @@
-# Netflix_Postgres
+# Netflix_PostgreSQL Project

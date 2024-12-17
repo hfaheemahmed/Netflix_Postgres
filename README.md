@@ -75,10 +75,11 @@ select case when description ilike '%kill%' or description ilike '%violence%' th
 	   else 'Good' end category from netflix)x
 group by 1
 ```
-```
-/* --------------------
-   8 Week SQL Challenge - Case Study Questions
-   --------------------*/
+# /* --------------------
+#   8 Week SQL Challenge - Case Study Questions
+https://8weeksqlchallenge.com/case-study-1/
+#   --------------------*/
+
 1. What is the total amount each customer spent at the restaurant?
 ```sql
 select customer_id,sum(price) from sales s join menu m on s.product_id=m.product_id

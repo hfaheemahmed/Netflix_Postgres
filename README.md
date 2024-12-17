@@ -76,3 +76,92 @@ select case when description ilike '%kill%' or description ilike '%violence%' th
 group by 1
 ```
 ```
+/* --------------------
+   8 Week SQL Challenge - Case Study Questions
+   --------------------*/
+1. What is the total amount each customer spent at the restaurant?
+```sql
+select customer_id,sum(price) from sales s join menu m on s.product_id=m.product_id
+group by customer_id order by 1
+```
+2. How many days has each customer visited the restaurant?
+```sql
+select customer_id, count(distinct order_date) NoOfDaysVisted from sales group by customer_id
+```
+3. What was the first item from the menu purchased by each customer?
+```sql
+select distinct customer_id,product_name  from sales s join menu m on s.product_id=m.product_id 
+ where order_date in (select min(order_date) from sales group by customer_id)
+ order by 1
+
+ with cte as (
+ select distinct customer_id,product_name,rank() over(partition by customer_id order by order_date) r
+ from sales s join menu m on s.product_id=m.product_id )
+ select customer_id,product_name from cte where r=1
+ order by 1
+```
+4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+```sql
+ select product_name,count(1) from sales s join menu m on s.product_id=m.product_id
+ group by product_name order by count(1) desc limit 1
+
+ select customer_id,count(1) NoofTimes from sales where product_id=(
+ select product_id from menu group by product_id order by count(*) desc limit 1)
+ group by customer_id
+```
+5. Which item was the most popular for each customer?
+```sql
+with cte as (
+ select customer_id,product_name,count(1) k from sales s join menu m on s.product_id=m.product_id
+ group by customer_id,product_name )
+ ,cte1 as (select *,rank() over(partition by customer_id order by k desc)r from cte)
+ select customer_id,product_name from cte1 where r=1
+```
+6. Which item was purchased first by the customer after they became a member?
+```sql
+with cte as (
+ select s.customer_id,m.product_name,s.order_date from sales s  join menu m on s.product_id=m.product_id
+  join members on s.customer_id=members.customer_id where s.order_date>members.join_date)
+ , cte2 as (select *,rank() over(partition by customer_id order by order_date) r from cte)
+ select customer_id,product_name from cte2 where r=1
+```
+7. Which item was purchased just before the customer became a member?
+```sql
+with cte as (
+ select s.customer_id,m.product_name,s.order_date from sales s  join menu m on s.product_id=m.product_id
+  join members on s.customer_id=members.customer_id where s.order_date<members.join_date)
+ , cte2 as (select *,dense_rank() over(partition by customer_id order by order_date desc) r from cte)
+ select customer_id,product_name from cte2 where r=1
+```
+8. What is the total items and amount spent for each member before they became a member?
+```sql
+select mb.customer_id, count(s.product_id),sum(price) 
+ from members mb join sales s on mb.customer_id=s.customer_id and s.order_date<mb.join_date
+ join menu m on m.product_id=s.product_id
+ group by mb.customer_id
+```
+9.  If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each -- customer have?
+```sql
+select s.customer_id,
+ sum(case when product_name='sushi' then 2*10*price 
+          else 10*price end)  points
+ from sales s join menu m on s.product_id=m.product_id group by s.customer_id
+```
+10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+```sql
+select mb.customer_id,
+ sum(case when s.order_date between mb.join_date and date_add(mb.join_date,interval '7 day') then price*2*10
+      when product_name='sushi' then price*2*10 
+     else price*10 end
+    ) points
+ from members mb join sales s on mb.customer_id=s.customer_id
+ join menu m on s.product_id=m.product_id 
+ and s.order_date <'2021-02-01'
+ group by mb.customer_id
+```
+11. List all customers,product_name,price and display whether they were member or not on their order date
+```sql
+select s.customer_id,product_name,price,order_date,join_date,
+case when order_date<join_date or join_date is null  then 'No' 
+	else 'Yes' end member
+```
